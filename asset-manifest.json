@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/farmbp_gta5rp/static/css/main.c3172db0.css",
-    "main.js": "/farmbp_gta5rp/static/js/main.b6a60a58.js",
+    "main.js": "/farmbp_gta5rp/static/js/main.4caeafaa.js",
     "static/js/535.9ed95ab8.chunk.js": "/farmbp_gta5rp/static/js/535.9ed95ab8.chunk.js",
     "index.html": "/farmbp_gta5rp/index.html",
     "main.c3172db0.css.map": "/farmbp_gta5rp/static/css/main.c3172db0.css.map",
-    "main.b6a60a58.js.map": "/farmbp_gta5rp/static/js/main.b6a60a58.js.map",
+    "main.4caeafaa.js.map": "/farmbp_gta5rp/static/js/main.4caeafaa.js.map",
     "535.9ed95ab8.chunk.js.map": "/farmbp_gta5rp/static/js/535.9ed95ab8.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.c3172db0.css",
-    "static/js/main.b6a60a58.js"
+    "static/js/main.4caeafaa.js"
   ]
 }
