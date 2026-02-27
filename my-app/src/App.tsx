@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Task, HistoryEntry } from "./types";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 
 
 function App() {
@@ -134,6 +135,22 @@ const [defaultTasks, setDefaultTasks] = useState([
   const [showAddTask, setShowAddTask] = useState(false);
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const handleDragEnd = (result: DropResult) => {
+  if (!result.destination) return; // если отпустили за пределами
+
+  const items = Array.from(defaultTasks); // копия массива
+  const [reorderedItem] = items.splice(result.source.index, 1); // убираем таск
+  items.splice(result.destination.index, 0, reorderedItem); // вставляем на новое место
+
+  setDefaultTasks(items); // обновляем порядок и сохраняем через useEffect
+};
+
+
+
+useEffect(() => {
+  localStorage.setItem("defaultTasks", JSON.stringify(defaultTasks));
+}, [defaultTasks]);
 
 
   // Загружаем задачи из localStorage при старте
@@ -666,158 +683,73 @@ const changeMonth = (direction: number) => {
               )}
 
               {/* Задания */}
-              <div className="space-y-3">
-                {tasks.map((task) => {
-  if (task.type === "simple") {
-    return (
-      <div
-        key={task.id}
-        className={`p-4 mb-3 rounded-lg border-2 shadow-sm bg-white flex items-center justify-between transition-all ${
-          task.completed
-            ? "bg-green-50 border-green-300"
-            : "hover:border-indigo-300"
-        }`}
-      >
-        {/* Левая часть: чек + название */}
-        <div className="flex items-center gap-3 flex-1">
-          <button
-            onClick={() => toggleSimpleTask(task.id)}
-            className="focus:outline-none"
-            aria-label={task.completed ? "Отменить выполнение" : "Отметить выполненным"}
-          >
-            {task.completed ? (
-              <CheckCircle className="w-7 h-7 text-green-600" viewBox="0 0 24 24" fill="none">
-                <path d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10Z" stroke="currentColor" strokeWidth="2"/>
-                <path d="M16 10l-4.5 4.5L8 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </CheckCircle>
-            ) : (
-              <Circle className="w-7 h-7 text-gray-400" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-              </Circle>
-            )}
-          </button>
-
-          <p className={`font-semibold ${task.completed ? "text-gray-500 line-through" : "text-gray-800"}`}>
-            {task.title}
-          </p>
-        </div>
-
-        {/* Правая часть: очки + удалить */}
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-start">
-  <div className="flex flex-col items-start">
-  <span className="px-3 py-1 rounded-full bg-indigo-200 text-indigo-800 font-bold">
-    +{task.points * getMultiplier()}
-  </span>
-  {getMultiplierLabel() && (
-    <span className="text-xs text-green-600 font-semibold mt-1">
-      {getMultiplierLabel()}
-    </span>
-  )}
-</div>
-</div>
-          <button
-            onClick={() => deleteTask(task.id)}
-            className="text-red-500 hover:text-red-700 transition-colors"
-            aria-label="Удалить задание"
-          >
-            <Trash2 className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-              <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M8 6V4h8v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M19 6l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth="2"/>
-            </Trash2>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (task.type === "repeatable") {
-    const canIncrement =
-      (task.currentCount ?? 0) < (task.requiredCount ?? 0) &&
-      (task.timeRemaining ?? 0) === 0;
-
-    return (
-      <div
-        key={task.id}
-        className="p-4 mb-3 rounded-lg border-2 shadow-sm bg-white flex items-center justify-between transition-all hover:border-indigo-300"
-      >
-        {/* Левая часть: название и счетчик */}
-        <div className="flex items-center gap-3 flex-1">
-          <div>
-            <p className="font-semibold text-gray-800">{task.title}</p>
-            <p className="text-sm text-gray-500">
-              {(task.currentCount ?? 0)} / {(task.requiredCount ?? 0)} раз
+              <DragDropContext onDragEnd={handleDragEnd}>
+  <Droppable droppableId="tasks">
+    {(provided) => (
+      <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
+        {tasks.map((task, index) => (
+          <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
+  {(provided) => (
+    <div
+      ref={provided.innerRef}
+      {...provided.draggableProps}
+      {...provided.dragHandleProps}
+    >
+      {task.type === "simple" ? (
+        <div
+          className={`p-4 mb-3 rounded-lg border-2 shadow-sm bg-white flex items-center justify-between transition-all ${
+            task.completed ? "bg-green-50 border-green-300" : "hover:border-indigo-300"
+          }`}
+        >
+          <div className="flex items-center gap-3 flex-1">
+            <button onClick={() => toggleSimpleTask(task.id)} className="focus:outline-none">
+              {/* SVG */}
+            </button>
+            <p className={`font-semibold ${task.completed ? "text-gray-500 line-through" : "text-gray-800"}`}>
+              {task.title}
             </p>
           </div>
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1 rounded-full bg-indigo-200 text-indigo-800 font-bold">
+              +{task.points * getMultiplier()}
+            </span>
+            <button onClick={() => deleteTask(task.id)} className="text-red-500 hover:text-red-700 transition-colors">
+              {/* SVG */}
+            </button>
+          </div>
         </div>
-
-        {/* Правая часть: кнопки и очки */}
-        <div className="flex items-center gap-3">
-          {/* Минус */}
-          <button
-            onClick={() => decrementRepeatableTask(task.id)}
-            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-            aria-label="Уменьшить прогресс"
-          >
-            −
-          </button>
-
-          {/* Выполнить / таймер кулдауна */}
-          <button
-            onClick={() => incrementRepeatableTask(task.id)}
-            disabled={!canIncrement}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-semibold"
-            aria-label="Выполнить"
-          >
-            {task.timeRemaining && task.timeRemaining > 0
-              ? formatTime(task.timeRemaining)
-              : "Выполнить"}
-          </button>
-
-          {/* Плюс */}
-          <button
-            onClick={() => incrementRepeatableTask(task.id)}
-            disabled={!canIncrement}
-            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            aria-label="Увеличить прогресс"
-          >
-            +
-          </button>
-
-          {/* Очки */}
-          <div className="flex flex-col items-start">
-  <span className="px-3 py-1 rounded-full bg-indigo-200 text-indigo-800 font-bold">
-    +{task.points * getMultiplier()}
-  </span>
-  {getMultiplierLabel() && (
-    <span className="text-xs text-green-600 font-semibold mt-1">
-      {getMultiplierLabel()}
-    </span>
+      ) : task.type === "repeatable" ? (
+        <div
+          className="p-4 mb-3 rounded-lg border-2 shadow-sm bg-white flex items-center justify-between transition-all hover:border-indigo-300"
+        >
+          <div className="flex items-center gap-3 flex-1">
+            <div>
+              <p className="font-semibold text-gray-800">{task.title}</p>
+              <p className="text-sm text-gray-500">{task.currentCount} / {task.requiredCount} раз</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => decrementRepeatableTask(task.id)}>-</button>
+            <button
+              onClick={() => incrementRepeatableTask(task.id)}
+              disabled={(task.currentCount ?? 0) >= (task.requiredCount ?? 0)}
+            >
+              Выполнить
+            </button>
+            <button onClick={() => incrementRepeatableTask(task.id)}>+</button>
+            <span>+{task.points * getMultiplier()}</span>
+          </div>
+        </div>
+      ) : null}
+    </div>
   )}
-</div>
-
-          {/* Удалить */}
-          <button
-            onClick={() => deleteTask(task.id)}
-            className="text-red-500 hover:text-red-700 transition-colors"
-            aria-label="Удалить задание"
-          >
-            <Trash2 className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-              <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M8 6V4h8v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M19 6l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" strokeWidth="2"/>
-            </Trash2>
-          </button>
-        </div>
+</Draggable>
+        ))}
+        {provided.placeholder}
       </div>
-    );
-  }
-
-  // Если появятся другие типы — ничего не рендерим
-  return null;
-})}
-              </div>
+    )}
+  </Droppable>
+</DragDropContext>
             </div>
 
             {/* Кнопка сброса */}
@@ -944,25 +876,45 @@ const changeMonth = (direction: number) => {
 </label>
 
       {/* Список заданий */}
-      <div className="max-h-[60vh] overflow-y-auto space-y-3 mb-6 pr-2 scrollbar-thin scrollbar-thumb-indigo-400 scrollbar-track-indigo-100">
-        {defaultTasks.map(task => (
-          <label key={task.id} className="flex items-center justify-between">
-            <span className="text-gray-800 font-medium">{task.title}</span>
-            <input
-              type="checkbox"
-              checked={task.enabled}
-              onChange={() =>
-                setDefaultTasks(prev =>
-                  prev.map(t =>
-                    t.id === task.id ? { ...t, enabled: !t.enabled } : t
-                  )
-                )
-              }
-              className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-            />
-          </label>
+     <DragDropContext onDragEnd={handleDragEnd}>
+  <Droppable droppableId="defaultTasks">
+    {(provided) => (
+      <div
+        className="max-h-[60vh] overflow-y-auto space-y-3 mb-6 pr-2 scrollbar-thin scrollbar-thumb-indigo-400 scrollbar-track-indigo-100"
+        {...provided.droppableProps}
+        ref={provided.innerRef}
+      >
+        {defaultTasks.map((task, index) => (
+          <Draggable key={task.id} draggableId={task.id.toString()} index={index}>
+            {(provided) => (
+              <label
+                ref={provided.innerRef}
+                {...provided.draggableProps}
+                {...provided.dragHandleProps}
+                className="flex items-center justify-between p-2 rounded-lg border-2 border-indigo-200 bg-indigo-50"
+              >
+                <span className="text-gray-800 font-medium">{task.title}</span>
+                <input
+                  type="checkbox"
+                  checked={task.enabled}
+                  onChange={() =>
+                    setDefaultTasks(prev =>
+                      prev.map(t =>
+                        t.id === task.id ? { ...t, enabled: !t.enabled } : t
+                      )
+                    )
+                  }
+                  className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+              </label>
+            )}
+          </Draggable>
         ))}
+        {provided.placeholder}
       </div>
+    )}
+  </Droppable>
+</DragDropContext>
 
       {/* Кнопки управления */}
       <div className="flex justify-between gap-2">
